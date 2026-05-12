@@ -1,0 +1,67 @@
+import numpy as np
+import cv2
+import os
+import matplotlib.pyplot as plt
+from sklearn.datasets import fetch_olivetti_faces
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.metrics import accuracy_score
+path = r"C:\Users\Dhanashri\Downloads\Images\cifar-10-batches-py"
+try:
+    if os.path.exists(path) and path.endswith(".npy"):
+        imgs = np.load(path)
+        labels = np.array([i // 10 for i in range(len(imgs))])
+    else:
+        data = fetch_olivetti_faces()
+        imgs = data.images
+        labels = data.target
+except Exception as e:
+    print("Dataset loading error:", e)
+    data = fetch_olivetti_faces()
+    imgs = data.images
+    labels = data.target
+print("Dataset Shape:", imgs.shape)
+print("Classes:", len(np.unique(labels)))
+color_imgs = []
+for img in imgs:
+    img = (img * 255).astype("uint8")
+    if len(img.shape) == 2:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    color_imgs.append(img)
+color_imgs = np.array(color_imgs)
+features = []
+for im in color_imgs:
+    hist_features = []
+    for c in range(3):
+        hist = cv2.calcHist([im], [c], None, [256], [0, 256])
+        hist = cv2.normalize(hist, None).flatten()
+        hist_features.extend(hist)
+    features.append(hist_features)
+features = np.array(features)
+print("Feature Shape:", features.shape)
+Xtr, Xte, Ytr, Yte, Imtr, Imte = train_test_split(
+    features,
+    labels,
+    color_imgs,
+    test_size=0.2,
+    random_state=42,
+    stratify=labels
+)
+model = RandomForestClassifier(
+    n_estimators=100,
+    random_state=42
+)
+model.fit(Xtr, Ytr)
+pred = model.predict(Xte)
+acc = accuracy_score(Yte, pred)
+print("Accuracy:", round(acc * 100, 2), "%")
+plt.figure(figsize=(10, 8))
+for i in range(6):
+    plt.subplot(2, 3, i + 1)
+    img_rgb = cv2.cvtColor(Imte[i], cv2.COLOR_BGR2RGB)
+    plt.imshow(img_rgb)
+    plt.title(f"A:{Yte[i]} | P:{pred[i]}")
+    plt.axis("off")
+plt.suptitle("Face Recognition Output")
+plt.tight_layout()
+plt.show()
