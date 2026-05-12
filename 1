@@ -1,0 +1,41 @@
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.naive_bayes import GaussianNB
+from sklearn.metrics import accuracy_score
+import matplotlib.pyplot as plt
+import warnings
+warnings.filterwarnings("ignore")
+url = r"C:\Users\Dhanashri\Downloads\spambase\spambase.data"
+df = pd.read_csv(url, header=None)
+X = df.iloc[:, :-1]
+y = df.iloc[:, -1]
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y,
+    test_size=0.2,
+    random_state=42
+)
+model = GaussianNB()
+model.fit(X_train, y_train)
+y_pred = model.predict(X_test)
+print(f"\nAccuracy: {accuracy_score(y_test, y_pred):.2%}")------
+fig, axes = plt.subplots(1, 2, figsize=(10, 4))
+spam_count = sum(y == 1)
+ham_count = sum(y == 0)
+axes[0].pie(
+    [ham_count, spam_count],
+    labels=['Ham', 'Spam'],
+    autopct='%1.1f%%'
+)
+axes[0].set_title("Ham vs Spam")
+importance = abs(model.theta_[1] - model.theta_[0])
+top_idx = importance.argsort()[-10:]
+axes[1].barh(range(10), importance[top_idx])
+axes[1].set_yticks(range(10))
+axes[1].set_yticklabels([f'F{i}' for i in top_idx])
+axes[1].set_title("Top 10 Features")
+plt.tight_layout()
+plt.show()
+sample_email = [0]*57
+prediction = model.predict([sample_email])[0]
+print("\nCustom Email Prediction:",
+      "SPAM" if prediction == 1 else "HAM")
